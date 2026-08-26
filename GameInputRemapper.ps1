@@ -1,15 +1,22 @@
 # Game Input Remapper v1.0.0
-# Bootstrap loader for the compressed application payload.
 # Windows PowerShell 5.1 / Windows 10/11
 
 $ErrorActionPreference = 'Stop'
 
-$payloadPath = Join-Path $PSScriptRoot 'GameInputRemapper.payload'
-if (-not (Test-Path -LiteralPath $payloadPath)) {
-    throw "GameInputRemapper.payload was not found next to GameInputRemapper.ps1."
+$partPaths = 1..4 | ForEach-Object {
+    Join-Path $PSScriptRoot ("GameInputRemapper.payload.{0:D2}" -f $_)
 }
 
-$payload = [System.IO.File]::ReadAllText($payloadPath).Trim()
+foreach ($path in $partPaths) {
+    if (-not (Test-Path -LiteralPath $path)) {
+        throw "Missing application payload part: $path"
+    }
+}
+
+$payload = ($partPaths | ForEach-Object {
+    [System.IO.File]::ReadAllText($_).Trim()
+}) -join ''
+
 $compressedBytes = [Convert]::FromBase64String($payload)
 $memoryStream = [System.IO.MemoryStream]::new($compressedBytes)
 $gzipStream = [System.IO.Compression.GZipStream]::new(
